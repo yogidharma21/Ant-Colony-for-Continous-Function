@@ -1,0 +1,75 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def objective_function(x):
+    A = 10
+    return A * len(x) + np.sum(x**2 - A * np.cos(2 * np.pi * x))  # Fungsi Rastrigin
+
+# Parameter
+m = 100  # Jumlah semut
+T = 500  # Iterasi maksimum
+alpha = 20  # Pheromone awal
+rho = 0.9  # Tingkat evaporasi pheromone
+dim = 2  # Dimensi fungsi Rastrigin
+
+# Konstruksi awal (t=0): Bangkitkan populasi semut secara acak
+x = np.random.uniform(-5.12, 5.12, (m, dim))
+fitness = np.apply_along_axis(objective_function, 1, x)
+best_index = np.argmin(fitness)
+x_best = x[best_index]  # Solusi terbaik awal
+best_fitness = fitness[best_index]
+
+# Simpan histori best fitness untuk plotting
+best_fitness_history_rastrigin = [best_fitness]
+
+# Memulai iterasi t = 1 hingga T
+for t in range(1, T + 1):
+    # Simpan x_best sebelumnya
+    prev_x_best = x_best.copy()
+    prev_best_fitness = best_fitness
+
+    # Bangkitkan vektor dx dalam rentang (-alpha, alpha) untuk semua semut
+    dx = np.random.uniform(-alpha, alpha, (m, dim))
+
+    # Update posisi semut berdasarkan x_best dari iterasi sebelumnya
+    new_x1 = x_best + dx
+    new_x2 = x_best - dx
+
+    # Evaluasi nilai fungsi
+    new_fitness1 = np.apply_along_axis(objective_function, 1, new_x1)
+    new_fitness2 = np.apply_along_axis(objective_function, 1, new_x2)
+
+    # Pilih solusi terbaik antara new_x1 atau new_x2 untuk setiap semut
+    better_x = np.where(new_fitness1[:, None] < new_fitness2[:, None], new_x1, new_x2)
+    better_fitness = np.minimum(new_fitness1, new_fitness2)
+
+    # Perbarui posisi semut hanya jika lebih baik dari sebelumnya
+    improved_mask = better_fitness < fitness
+    x[improved_mask] = better_x[improved_mask]
+    fitness[improved_mask] = better_fitness[improved_mask]
+
+    # Perbarui x_best hanya jika ada solusi lebih baik dari sebelumnya
+    best_index = np.argmin(fitness)
+    if fitness[best_index] < prev_best_fitness:
+        x_best = x[best_index]
+        best_fitness = fitness[best_index]
+    else:
+        x_best = prev_x_best  # Tetap gunakan x_best sebelumnya jika tidak ada solusi yang lebih baik
+
+    # Evaporasi pheromone dilakukan untuk seluruh populasi
+    alpha *= rho
+
+    # Simpan best_fitness dalam sejarah
+    best_fitness_history_rastrigin.append(best_fitness)
+
+# Output solusi terbaik
+print("Solusi terbaik:", x_best)
+print("Nilai minimum:", objective_function(x_best), '\n')
+plt.figure(figsize=(6, 4))
+plt.plot(range(1, T + 2), best_fitness_history_rastrigin)
+plt.xlabel("Iterasi")
+plt.ylabel("Nilai Fitness Terbaik")
+plt.grid(True)
+plt.xticks(range(1, T + 2))
+plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+plt.show()
